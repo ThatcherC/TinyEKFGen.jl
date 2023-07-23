@@ -1,0 +1,3 @@
+[submodule "examples/TinyEKF"]
+	path = examples/TinyEKF
+	url = https://github.com/simondlevy/TinyEKF.git

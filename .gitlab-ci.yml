@@ -1,0 +1,147 @@
+image: docker:20.10.12
+
+stages:
+  - build
+  - push
+  - test
+
+include:
+  - template: Code-Quality.gitlab-ci.yml
+
+# prevents seperate MR and branch pipelines
+# as recommended by https://medium.com/devops-with-valentine/fix-gitlab-ci-duplicate-pipelines-in-merge-requests-when-using-rules-9a1486994f3a
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+services:
+  # extras from https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27300#note_621025442
+  - name: docker:20.10.12-dind
+    alias: docker
+    command: [ "--tls=false" ]
+
+
+variables:
+  # Use TLS https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
+  #DOCKER_HOST: tcp://docker:2376
+  #DOCKER_TLS_CERTDIR: "/certs"
+  # variable from https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27300#note_621025442
+  DOCKER_DRIVER: overlay2
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+  GIT_SUBMODULE_STRATEGY: recursive
+
+# Common configuration for all Docker jobs
+.docker-common: &docker-common
+  image: docker:20.10.12
+  before_script:
+    - echo -n $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+
+
+build:
+  stage: build
+  <<: *docker-common
+  script:
+    # Fetch the image built during the build stage
+    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME || docker pull $CI_REGISTRY_IMAGE:latest || true
+    # Build the test image, caching from build stage
+    - ls
+    - >
+      docker build
+      --cache-from $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+      --cache-from $CI_REGISTRY_IMAGE:latest
+      --label "org.opencontainers.image.title=$CI_PROJECT_TITLE"
+      --label "org.opencontainers.image.url=$CI_PROJECT_URL"
+      --label "org.opencontainers.image.created=$CI_JOB_STARTED_AT"
+      --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
+      --label "org.opencontainers.image.version=$CI_COMMIT_REF_NAME"
+      --build-arg CI_TIMESPEC_USER=${CI_TIMESPEC_USER}
+      --build-arg CI_TIMESPEC_TOKEN=${CI_TIMESPEC_TOKEN}
+      --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+      --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+      --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+      --build-arg GITVERSION="$CI_COMMIT_SHA"
+      --target installedoneeight .
+    # Push to commit SHA tag
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+
+
+unit-test:
+  stage: test
+  <<: *docker-common
+  script:
+    # Fetch the image built during the compilation stage
+    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    # Build the test image, caching from compile stage
+    - >
+      docker build
+      --cache-from $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+      --build-arg CI_TIMESPEC_USER=${CI_TIMESPEC_USER}
+      --build-arg CI_TIMESPEC_TOKEN=${CI_TIMESPEC_TOKEN}
+      --tag "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}-test"
+      --target testoneeight .
+    # Run the tests
+    - >
+      docker run
+      --tty
+      --rm
+      --name tinyekfgenoneeight-test
+      --volume $CI_PROJECT_DIR/artifacts:/mnt/artifacts
+      "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}-test"
+      julia --project=/app/ -e 'using Pkg; Pkg.instantiate(); Pkg.add("TestReports"); using TestReports; cd("test"); TestReports.test("TinyEKFGen", logfilepath="/mnt/artifacts/")'
+
+# Uncomment after unit tests are merged:
+  artifacts:
+    when: always
+    paths:
+      - $CI_PROJECT_DIR/artifacts/*.xml
+    reports:
+      junit: $CI_PROJECT_DIR/artifacts/*.xml
+
+
+
+# Push the image with the latest tag only on the main branch
+docker push latest:
+  stage: push
+  only:
+    - main
+  <<: *docker-common
+  variables:
+    # No need for GitLab to pull the code for this one
+    GIT_STRATEGY: none
+  script:
+    # Fetch the image built during the build stage
+    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+    # Tag it with latest
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME $CI_REGISTRY_IMAGE:latest
+    # Push latest
+    - docker push $CI_REGISTRY_IMAGE:latest
+
+# Push the image when a Git tag is created
+docker push tag:
+  stage: push
+  only:
+    - tags
+  <<: *docker-common
+  variables:
+    # No need for GitLab to pull the code for this one
+    GIT_STRATEGY: none
+  script:
+    # Fetch the image built during the build stage
+    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+    # Tag it with the ref name from GitLab (here it will be the Git tag)
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+    # Push
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+
+code_quality:
+  rules:
+    - if: $CODE_QUALITY_DISABLED
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" # Run code quality job in merge request pipelines
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH      # Run code quality job in pipelines on the default branch (but not in other branch pipelines)
+    - if: $CI_COMMIT_TAG                               # Run code quality job in pipelines for tags
+
+

@@ -1,0 +1,9 @@
+engines:
+  fixme:
+    enabled: true
+    config:
+      strings:
+      - TODO
+      - "#warning"
+#      - FIXME
+#      - CUSTOM
