@@ -1,0 +1,6 @@
+parabola
+obj/*.o
+
+ekf-result.csv
+parabola-ekf.h
+tables/
