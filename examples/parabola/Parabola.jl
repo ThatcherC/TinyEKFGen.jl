@@ -5,19 +5,19 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ 91825218-2b47-4b31-8862-26c2c846b2e2
-haskey(ENV, "IN_TEST") || begin 
-	import Pkg
-	Pkg.add(path="../../", rev="main")
+haskey(ENV, "IN_TEST") || begin
+    import Pkg
+    Pkg.add(path="../../", rev="main")
 end
 
 # ╔═╡ f3bbdac0-fd55-11ec-1ee5-37f857dc7ab4
 begin
-	using TinyEKFGen
-	using SymEngine
-	using LinearAlgebra
-	using DataFrames
-	using CSV
-	using Plots
+    using TinyEKFGen
+    using SymEngine
+    using LinearAlgebra
+    using DataFrames
+    using CSV
+    using Plots
 end
 
 # ╔═╡ 177dd8ce-30a8-461d-9771-6f9db1df8498
@@ -35,10 +35,10 @@ State vector here is a 2D position and velocity.
 
 # ╔═╡ 0a0043ac-d8c1-43c3-ab8f-4bb71161b115
 begin
-	r = [r_x, r_y]
-	v = [v_x, v_y]
+    r = [r_x, r_y]
+    v = [v_x, v_y]
 
-	x = [r..., v...]
+    x = [r..., v...]
 end
 
 # ╔═╡ 2bd678ea-ab77-4845-b2f4-2e7ab08d159a
@@ -47,10 +47,10 @@ md"""
 """
 
 # ╔═╡ 3ff5e117-b05c-48d2-aaf1-ac9c8063da2a
-nextr = r + v*dt + 1/2 .* [0, ACCEL] .* dt^2
+nextr = r + v * dt + 1 / 2 .* [0, ACCEL] .* dt^2
 
 # ╔═╡ f86eea91-72f6-4197-8c98-c37825c9f4f4
-nextv = [v_x, v_y+ACCEL*dt]
+nextv = [v_x, v_y + ACCEL * dt]
 
 # ╔═╡ dcacc705-2f07-42df-bd16-947478a36c20
 nextx = [nextr..., nextv...]
@@ -62,10 +62,10 @@ md"""
 
 # ╔═╡ 889a33a9-f940-4861-8736-dac7c071f773
 begin
-	meas_x = r_x
-	meas_y = r_y
+    meas_x = r_x
+    meas_y = r_y
 
-	predobs = [meas_x, meas_y]
+    predobs = [meas_x, meas_y]
 end
 
 # ╔═╡ bb9d0ded-70e3-4e74-ab2d-07b349b4939a
@@ -76,13 +76,10 @@ Assign constant values to some symbols. In this case, our model assumes the acce
 """
 
 # ╔═╡ f5dde4a5-d238-40b6-a5a7-52bccdca576d
-constants = Dict( ACCEL => -9.81)
+constants = Dict(ACCEL => -9.81)
 
 # ╔═╡ 1786e901-035a-437f-b9f8-0225c66e535d
-TinyEKFGen.outputHeader("parabola-ekf.h",x,
-			nextx,
-			predobs,
-			constants)
+TinyEKFGen.outputHeader("parabola-ekf.h", x, nextx, predobs, constants)
 
 # ╔═╡ 37d55ea5-6334-41af-bb37-c1b2ceef040f
 md"""
@@ -118,43 +115,84 @@ md"""
 
 # ╔═╡ 32a3564d-8032-42ee-9392-d726fefc0fce
 begin
-	inputfile = "tables/nodrag-noisy.csv"; refdata = nodragtruth;
-	#inputfile = "tables/drag-noisy.csv"; refdata = draggytruth;
+    inputfile = "tables/nodrag-noisy.csv"
+    refdata = nodragtruth
+    #inputfile = "tables/drag-noisy.csv"; refdata = draggytruth;
 end
 
 # ╔═╡ 5d6c67c0-f06d-4564-b690-b7f1637db105
 estimations = let
-	run(`make parabola`)
-	run(`./parabola -i $inputfile -o ekf-result.csv`)
-	println("Compiled and ran!")
-	CSV.read("ekf-result.csv", DataFrame, header=false)
+    run(`make parabola`)
+    run(`./parabola -i $inputfile -o ekf-result.csv`)
+    println("Compiled and ran!")
+    CSV.read("ekf-result.csv", DataFrame, header=false)
 end
 
 # ╔═╡ 5fa31c85-5129-45c1-b2d9-a6dac2f50ede
-length(ARGS)==0 && let
-	p = plot(layout=(2,2))
-	plot!(subplot=1, estimations[:, 1], estimations[:, 2], ribbon=estimations[:, 6], label="x")
-	plot!(subplot=2, estimations[:, 1], estimations[:, 3], ribbon=estimations[:, 7], label="y")
-	plot!(subplot=3, estimations[:, 1], estimations[:, 4], ribbon=estimations[:, 8], label="vx")
-	plot!(subplot=4, estimations[:, 1], estimations[:, 5], ribbon=estimations[:, 9], label="vy")
+length(ARGS) == 0 && let
+    p = plot(layout=(2, 2))
+    plot!(
+        subplot=1,
+        estimations[:, 1],
+        estimations[:, 2],
+        ribbon=estimations[:, 6],
+        label="x",
+    )
+    plot!(
+        subplot=2,
+        estimations[:, 1],
+        estimations[:, 3],
+        ribbon=estimations[:, 7],
+        label="y",
+    )
+    plot!(
+        subplot=3,
+        estimations[:, 1],
+        estimations[:, 4],
+        ribbon=estimations[:, 8],
+        label="vx",
+    )
+    plot!(
+        subplot=4,
+        estimations[:, 1],
+        estimations[:, 5],
+        ribbon=estimations[:, 9],
+        label="vy",
+    )
 end
 
 # ╔═╡ 162e370e-aa34-401c-aa2d-6f7f3febe930
-length(ARGS)==0 && let
-	p = plot(layout=(2,2))
-	plot!(subplot=1, estimations[:, 1], 
-		estimations[:, 2]-refdata[:, "x"], 
-		ribbon=estimations[:, 6],fillalpha=.5)
-	plot!(subplot=2, estimations[:, 1], 
-		estimations[:, 3]-refdata[:, "y"], 
-		ribbon=estimations[:, 7],fillalpha=.5)
+length(ARGS) == 0 && let
+    p = plot(layout=(2, 2))
+    plot!(
+        subplot=1,
+        estimations[:, 1],
+        estimations[:, 2] - refdata[:, "x"],
+        ribbon=estimations[:, 6],
+        fillalpha=0.5,
+    )
+    plot!(
+        subplot=2,
+        estimations[:, 1],
+        estimations[:, 3] - refdata[:, "y"],
+        ribbon=estimations[:, 7],
+        fillalpha=0.5,
+    )
 
-	plot!(subplot=3, estimations[:, 1], 
-		estimations[:, 4]-refdata[:, "vx"], 
-		ribbon=estimations[:, 8],fillalpha=.5)
-	plot!(subplot=4, estimations[:, 1], 
-		estimations[:, 5]-refdata[:, "vy"], 
-		ribbon=estimations[:, 9],fillalpha=.5)
+    plot!(
+        subplot=3,
+        estimations[:, 1],
+        estimations[:, 4] - refdata[:, "vx"],
+        ribbon=estimations[:, 8],
+        fillalpha=0.5,
+    )
+    plot!(
+        subplot=4,
+        estimations[:, 1],
+        estimations[:, 5] - refdata[:, "vy"],
+        ribbon=estimations[:, 9],
+        fillalpha=0.5,
+    )
 end
 
 # ╔═╡ Cell order:
