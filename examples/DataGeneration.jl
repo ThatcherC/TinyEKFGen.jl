@@ -6,12 +6,12 @@ using InteractiveUtils
 
 # ╔═╡ 257997e6-0944-11ee-18f4-cb62c3b15efb
 begin
-	using OrdinaryDiffEq
-	using LinearAlgebra
-	using Random
-	using Distributions
-	using DataFrames
-	using CSV
+    using OrdinaryDiffEq
+    using LinearAlgebra
+    using Random
+    using Distributions
+    using DataFrames
+    using CSV
 end
 
 # ╔═╡ fb1b7bd0-970d-4d6b-bfdf-fd8766af5a8e
@@ -19,7 +19,7 @@ end
 Random.seed!(5026)
 
 # ╔═╡ a3721713-a3a4-4a8b-90ec-8c075fb03143
-path = if length(ARGS)>0
+path = if length(ARGS) > 0
     ARGS[1]
 else
     "parabola/tables"
@@ -38,23 +38,23 @@ g = -9.81
 nodragf(u, p, t) = [u[3], u[4], 0, p[1]];
 
 # ╔═╡ a1c00e45-e79d-44e0-8a02-a7fe1c0f50a6
-dragf(u, p, t) = [u[3], u[4], 
-				  0-sign(u[3])*u[3]^2*p[2], p[1]-sign(u[4])*u[4]^2*p[2]];
+dragf(u, p, t) =
+    [u[3], u[4], 0 - sign(u[3]) * u[3]^2 * p[2], p[1] - sign(u[4]) * u[4]^2 * p[2]];
 
 # ╔═╡ b2c6f186-971a-4877-8568-34e47a5b41e6
 md"## Initial Conditions"
 
 # ╔═╡ f0d8daee-fc72-4f98-8dd8-220ba958ac67
 begin
-	ts = 0:0.1:10
-	tspan = (first(ts), last(ts))
-	x0 = 5
-	y0 = 0
+    ts = 0:0.1:10
+    tspan = (first(ts), last(ts))
+    x0 = 5
+    y0 = 0
 
-	vx0 = 2
-	vy0 = 50
+    vx0 = 2
+    vy0 = 50
 
-	s0 = [x0, y0, vx0, vy0]
+    s0 = [x0, y0, vx0, vy0]
 end
 
 # ╔═╡ 2476d95e-e409-477a-a4fe-f91bc77be4d7
@@ -65,20 +65,20 @@ md"## Generate Data"
 
 # ╔═╡ 51ae4253-ff88-4c41-b40f-afbd61f6d817
 nodragtruth = let
-	prob = ODEProblem(nodragf,s0,tspan, [g])
-	sol = solve(prob, Tsit5(), reltol=1e-8, abstol=1e-8)
-	states = sol.(ts)
-	stateArray = transpose(reduce(hcat, states))
-	withTimes = hcat(ts, stateArray)
-	DataFrame(withTimes, [:t, :x, :y, :vx, :vy])
+    prob = ODEProblem(nodragf, s0, tspan, [g])
+    sol = solve(prob, Tsit5(), reltol=1e-8, abstol=1e-8)
+    states = sol.(ts)
+    stateArray = transpose(reduce(hcat, states))
+    withTimes = hcat(ts, stateArray)
+    DataFrame(withTimes, [:t, :x, :y, :vx, :vy])
 end;
 
 # ╔═╡ 27554d59-a17d-4925-b2df-1511324f6e0e
 nodragnoisy = let
-	noisy = copy(nodragtruth)
-	noisy[:, 2] += randn(101) * stddev
-	noisy[:, 3] += randn(101) * stddev
-	noisy
+    noisy = copy(nodragtruth)
+    noisy[:, 2] += randn(101) * stddev
+    noisy[:, 3] += randn(101) * stddev
+    noisy
 end;
 
 # ╔═╡ 7bf001d8-daf2-43e4-b22d-adc600e9df7a
@@ -92,22 +92,22 @@ CSV.write("$path/nodrag-noisy.csv", nodragnoisy)
 
 # ╔═╡ 5ecc9b61-79ac-49df-aa10-3ba23b73ea5b
 draggytruth = let
-	DCAoverM = 0.5
-	
-	prob = ODEProblem(dragf,s0,tspan, [g, DCAoverM])
-	sol = solve(prob, Tsit5(), reltol=1e-8, abstol=1e-8)
-	states = sol.(ts)
-	stateArray = transpose(reduce(hcat, states))
-	withTimes = hcat(ts, stateArray)
-	DataFrame(withTimes, [:t, :x, :y, :vx, :vy])
+    DCAoverM = 0.5
+
+    prob = ODEProblem(dragf, s0, tspan, [g, DCAoverM])
+    sol = solve(prob, Tsit5(), reltol=1e-8, abstol=1e-8)
+    states = sol.(ts)
+    stateArray = transpose(reduce(hcat, states))
+    withTimes = hcat(ts, stateArray)
+    DataFrame(withTimes, [:t, :x, :y, :vx, :vy])
 end
 
 # ╔═╡ 790d6441-86aa-4b16-8977-60225bc9424e
 draggynoisy = let
-	noisy = copy(draggytruth)
-	noisy[:, 2] += randn(101) * stddev
-	noisy[:, 3] += randn(101) * stddev
-	noisy
+    noisy = copy(draggytruth)
+    noisy[:, 2] += randn(101) * stddev
+    noisy[:, 3] += randn(101) * stddev
+    noisy
 end;
 
 # ╔═╡ df053221-0f5a-4b13-aade-9d58b0ff07e5
