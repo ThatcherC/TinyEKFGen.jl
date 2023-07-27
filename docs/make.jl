@@ -1,4 +1,5 @@
 using Documenter
+using SymEngine
 using TinyEKFGen
 
 makedocs(sitename = "TinyEKFGen", format = Documenter.HTML(), modules = [TinyEKFGen])
