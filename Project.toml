@@ -1,7 +1,7 @@
 name = "TinyEKFGen"
 uuid = "6bec017d-0eb5-4800-a30e-28dcf67ac06f"
 authors = ["Thatcher <j.thatcher.c@gmail.com>"]
-version = "0.4.2"
+version = "0.4.3"
 
 [deps]
 Espresso = "6912e4f1-e036-58b0-9138-08d1e6358ea9"
