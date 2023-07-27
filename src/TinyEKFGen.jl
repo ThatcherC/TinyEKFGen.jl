@@ -48,7 +48,7 @@ end
 """
 	function diffvwrtv(e::Array{Basic,1}, v::Array{Basic,1})
 
-Compute Jacobian of a vector of expresses `e` with respect to another vector of expressions `v`.
+Compute Jacobian of a vector of expressions `e` with respect to another vector of expressions `v`.
 """
 function diffvwrtv(e::Array{SymEngine.Basic,1}, v::Array{SymEngine.Basic,1})
     a = transpose(SymEngine.diff.(e, v[1]))
@@ -64,8 +64,7 @@ end
 - The predicted observations `hx`
 - The observation model linearization `H`
 
-We might also opt to include an update to the noise model, as I have done in
-the LAD EKF
+We might also opt to include an update to the noise model.
 
 I also want a way to keep track of variables/symbols that are not part of the
 state, as those will need to be passed into the EKF update function.
