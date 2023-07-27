@@ -2,30 +2,8 @@
 
 A Julia C code generator for use with [TinyEKF](https://github.com/simondlevy/TinyEKF).
 
-```@contents
-```
-
-## Key Management Functions
-
-```@docs
-Tiny.getAPIkey()
-```
-
-```@docs
-ReplGPT.setAPIkey(key::String)
-
-ReplGPT.clearAPIkey()
-```
-
-## Conversation Management
-
-```@docs
-ReplGPT.initialize_conversation()
-
-ReplGPT.save_conversation(filepath)
-```
-
-## Output Formatting
+#```@contents
+#```
 
 ```@docs
 TinyEKFGen.diffvwrtv(e::Array{SymEngine.Basic,1}, v::Array{SymEngine.Basic,1})
